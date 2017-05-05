@@ -1,4 +1,6 @@
 from __future__ import division
+import copy
+from collections import deque
 
 grammar = {}
 with open("probs.txt","r") as f:
@@ -17,13 +19,200 @@ def getprobs(grammar):
     total = sum(RHS.values())
     for rule in RHS:
       probs[key, rule] = RHS[rule]/total
-    newgrammar[key] = RHS.keys()
+    ## Below commented out code is for figuring out what's up with the grammar
+    ## i = 0
+    ## for x in RHS.keys():
+    ##     if type(x) == type("what"):
+    ##         print "in getprobs: found a string: " + x
+    ##         #print key, RHS
+    ##         print "key: " + str(key) + "; RHS: " + str(RHS)
+    ##     if i == 5:
+    ##         print "regular one:"
+    ##         print "key: " + str(key) + "; RHS: " + str(RHS)
+    ##     i = i+1
+    newgrammar[key] = [list(x) for x in RHS.keys()] #RHS.keys()
   return newgrammar, probs
 
 newgrammar, probs = getprobs(grammar)
 terminals, terminalprobs = getprobs(terms)
 
+<<<<<<< HEAD
 print newgrammar['sps00']
+=======
+############### Convert to CNF stuff ##################
+# TODO: to identify terminals and nonterminals, just look at the keys of the grammar dictionary - they are non-terminals, others are terminals
+# TODO: fix bug w/ removing unit productions - maybe switch to testing on smaller, baby grammar w/ probabilities
+# TODO: figure out what's going on with things being in grammar that shouldn't - some code investigating this is commented out in extract.py
+# TODO: adapt CNF converter to take a grammar and a probability dict, and return a modified version of each.
+
+
+terminals = set(['that','this','a','book','flight','meal','money','include','prefer','I','she','me','Houston','TWA','does','from','to','on','near','through','test','the'])
+terminals_CI = {x.lower() for x in terminals}
+
+nonterminals = set(['S','NP','Nominal','VP','PP','Det','Noun','Verb','Pronoun','Proper-Noun','Aux','Preposition'])
+nonterminals_CI = {x.lower() for x in nonterminals}
+
+def nameMaker():
+    class context:
+        y = 0
+    def inner():
+        context.y += 1
+        ret = "_X" + str(context.y) + "_"
+        nonterminals.add(ret)
+        return ret
+    return inner
+getNewName = nameMaker() # using the above closure, when we say `getNewName` we will always get a new string each time
+
+# This function determines whether a grammar is in Chomsky Normal Form
+def InCNF(g):
+    for left_side in g:
+        rule_list = g[left_side]
+        for rule in rule_list:
+            if len(rule) > 2 or len(rule) < 1:
+                bool = False
+                #print "wrong: long or empty rule"
+                #print "offending rule:   " + str(rule)
+            elif len(rule) == 2:
+                bool =  (rule[0] in nonterminals) and (rule[1] in nonterminals) # string comparison
+                #if not bool:
+                #    print "wrong: mixed rule"
+                #    print "offending rule:   " + str(rule)
+            else:     # i.e, len(rule) == 1
+                #bool =  (rule[0] in terminals) # original
+                bool =  (rule[0].lower() in terminals_CI) # string comparison
+                #if not bool:
+                #    print "wrong: unit production"
+                #    print "offending rule:   " + str(rule)
+            if not bool:
+                return bool 
+    return True
+
+
+# Takes in a grammar (in the given dictionary format), and modifies it to get 
+#   rid of rules that mix terminals and nonterminals.
+# Does not return anything - it modifies the given grammar.
+def convertMixedRules(g, p):
+    for left_side in g.keys():
+        rule_list = g[left_side]
+        for rule in rule_list:
+            if len(rule) > 1:
+                for i in range(len(rule)):
+                    if rule[i] in terminals:
+                        dummy = rule[i] + "_dummy"
+                        nonterminals.add(dummy)
+                        g[dummy] = [[rule[i]]]
+                        p[(dummy, tuple([rule[i]]))] = 1
+                        #print left_side, rule, rule[i], dummy
+                        rule[i] = dummy
+
+
+# Takes a grammar in the dictionary format and returns a list of tuples, each representing the start and end of a chain of unit productions - so if we have A -> B and B -> C, it should return [('A', 'B'), ('B', 'C'), ('A', 'C')]
+def findUnitProductionChains(g, p):
+    unitChains = set([])
+    for left_side in g:
+        #print "loop1"
+        rule_list = g[left_side]
+        for rule in rule_list:
+            if (len(rule) == 1) and (rule[0] in nonterminals): # string comparison
+                thisProb = p[(left_side, tuple(rule[0]))] # probability of this rule
+                unitChains.add( (left_side, rule[0], thisProb) )
+    foundSome = True
+    while foundSome:
+        #print "loop2"
+        foundSome = False
+        newOnes = set([])
+        for triple in unitChains:
+            #print "loop3"
+            #print pair
+            A, B, p = triple
+            for rule in g[B]:
+                #print B + " -> " + str(rule)
+                if (len(rule) == 1) and (rule[0] in nonterminals): # string comparison
+                    #print "got here"
+                    probAtoB = p[ ( A, tuple([B]) ) ]
+                    probBtoNext = p[ ( B, tuple(rule) ) ]
+                    newProb = probAtoB * probBtoNext
+                    new = (A, rule[0], newProb)
+                    #print new
+                    #print (new not in unitChains)
+                    if (new not in unitChains) and (new not in newOnes): # string comparison
+                        #print "got here22222"
+                        newOnes.add( new )
+                        foundSome = True
+        unitChains.update(newOnes) # same as `unitChains = unitChains.union(newOnes)` or `unitChains = (unitChains | newOnes)`, but faster
+    return unitChains
+
+
+# Takes in a grammar (in the given dictionary format), and modifies it to get 
+#   rid of unit productions.
+# Does not return anything - it modifies the given grammar.    
+def removeUnitProductions(g, p):
+    unitChains = findUnitProductionChains(g)
+    for triple in unitChains:
+        A, B, p = triple
+        for rule in g[B]:
+            g[A].append(rule)
+            #p[(dummy, tuple([rule[i]]))] = 1 # example probs usage
+            probBtoRule = p[ ( B, tuple(rule) ) ]
+            p[(A, tuple(rule))] = p * probBtoRule # TODO: need to know probability of unit chain from A to B
+        g[A].remove([B])
+        del g[B] # no longer need rule B at all
+
+
+# Takes a single "long" rule: lhs is the nonterminal on the left-hand-side, rhs is the right-hand-side of the rule, and returns a suitable set of replacement rules in CNF, as tuples (i.e., expandRule("Z", ["A", "B", "C", "D"]) -> [("Z", ["A", "X1"]), ("X1", ["B", "X2"]), ("X2", ["C", "D"])]
+def expandRule(lhs, rhs):
+    newRules = []
+    prev = lhs
+    for i in range(0, len(rhs)-2): # we assume that rhs is at least length 3, or else this function shouldn't be called
+        nextName = getNewName()
+        newRules.append( (prev, [rhs[i], nextName]) )
+        prev = nextName
+        
+    newRules.append( (prev, [rhs[len(rhs)-2], rhs[len(rhs)-1]]) )
+    return newRules
+
+
+# Remove and replace "long" rules (more than 3 nondeterminals on the right hand side) with equivalent sequences of shorter ones. Takes a grammar and modifies it - does not return anything.
+def removeLongRules(g, p):  # make change probabilites in p appropriately
+    longRules = []
+    
+    # Find all rules of length 3 or more, "write them down"
+    for left_side in g:
+        rule_list = g[left_side]
+        for rule in rule_list:
+            if len(rule) > 2:
+                longRules.append( (left_side, rule) )
+    
+    # remove them from the grammar
+    for pair in longRules:
+        lhs, rhs = pair
+        g[lhs].remove(rhs)
+    
+    # expand each removed long rule into a sequence of rules w/ dummy nonterminals (X1, X2, etc.) and add them to the grammar
+    for pair in longRules:
+        lhs, rhs = pair
+        replacement = expandRule(lhs, rhs)
+        for newPair in replacement:
+            newLHS, newRHS = newPair
+            if newLHS in g:
+                g[newLHS].append(newRHS)
+            else:
+                g[newLHS] = [newRHS]
+
+
+# This function takes a grammar and returns an equivalent grammar in Chomsky Normal Form
+def ConvertToCNF(g, p):
+    g = copy.deepcopy(g)
+    p = copy.deepcopy(p)
+    convertMixedRules(g, p)
+    removeUnitProductions(g, p)
+    removeLongRules(g, p)
+
+    return (g, p)
+
+######################################################
+
+>>>>>>> 8143c7fc4475c33363ee5f1825bd9b3c44ba681f
 
 # Extra Credit (optional): Modify your CKYRecognizer function to instead return a valid parse of the string, if one exists.
 def CKYParser(g,s):
