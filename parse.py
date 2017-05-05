@@ -88,7 +88,7 @@ def InCNF(g):
 # Takes in a grammar (in the given dictionary format), and modifies it to get 
 #   rid of rules that mix terminals and nonterminals.
 # Does not return anything - it modifies the given grammar.
-def convertMixedRules(g):
+def convertMixedRules(g, p):
     for left_side in g.keys():
         rule_list = g[left_side]
         for rule in rule_list:
@@ -98,20 +98,20 @@ def convertMixedRules(g):
                         dummy = rule[i] + "_dummy"
                         nonterminals.add(dummy)
                         g[dummy] = [[rule[i]]]
-                        probs[(dummy, tuple([rule[i]]))] = 1
+                        p[(dummy, tuple([rule[i]]))] = 1
                         #print left_side, rule, rule[i], dummy
                         rule[i] = dummy
 
 
 # Takes a grammar in the dictionary format and returns a list of tuples, each representing the start and end of a chain of unit productions - so if we have A -> B and B -> C, it should return [('A', 'B'), ('B', 'C'), ('A', 'C')]
-def findUnitProductionChains(g):
+def findUnitProductionChains(g, p):
     unitChains = set([])
     for left_side in g:
         #print "loop1"
         rule_list = g[left_side]
         for rule in rule_list:
             if (len(rule) == 1) and (rule[0] in nonterminals): # string comparison
-                thisProb = probs[(left_side, tuple(rule[0]))] # probability of this rule
+                thisProb = p[(left_side, tuple(rule[0]))] # probability of this rule
                 unitChains.add( (left_side, rule[0], thisProb) )
     foundSome = True
     while foundSome:
@@ -126,8 +126,8 @@ def findUnitProductionChains(g):
                 #print B + " -> " + str(rule)
                 if (len(rule) == 1) and (rule[0] in nonterminals): # string comparison
                     #print "got here"
-                    probAtoB = probs[ ( A, tuple([B]) ) ]
-                    probBtoNext = probs[ ( B, tuple(rule) ) ]
+                    probAtoB = p[ ( A, tuple([B]) ) ]
+                    probBtoNext = p[ ( B, tuple(rule) ) ]
                     newProb = probAtoB * probBtoNext
                     new = (A, rule[0], newProb)
                     #print new
@@ -143,15 +143,15 @@ def findUnitProductionChains(g):
 # Takes in a grammar (in the given dictionary format), and modifies it to get 
 #   rid of unit productions.
 # Does not return anything - it modifies the given grammar.    
-def removeUnitProductions(g):
+def removeUnitProductions(g, p):
     unitChains = findUnitProductionChains(g)
     for triple in unitChains:
         A, B, p = triple
         for rule in g[B]:
             g[A].append(rule)
-            #probs[(dummy, tuple([rule[i]]))] = 1 # example probs usage
-            probBtoRule = probs[ ( B, tuple(rule) ) ]
-            probs[(A, tuple(rule))] = p * probBtoRule # TODO: need to know probability of unit chain from A to B
+            #p[(dummy, tuple([rule[i]]))] = 1 # example probs usage
+            probBtoRule = p[ ( B, tuple(rule) ) ]
+            p[(A, tuple(rule))] = p * probBtoRule # TODO: need to know probability of unit chain from A to B
         g[A].remove([B])
         del g[B] # no longer need rule B at all
 
@@ -170,7 +170,7 @@ def expandRule(lhs, rhs):
 
 
 # Remove and replace "long" rules (more than 3 nondeterminals on the right hand side) with equivalent sequences of shorter ones. Takes a grammar and modifies it - does not return anything.
-def removeLongRules(g):
+def removeLongRules(g, p):  # make change probabilites in p appropriately
     longRules = []
     
     # Find all rules of length 3 or more, "write them down"
@@ -198,13 +198,14 @@ def removeLongRules(g):
 
 
 # This function takes a grammar and returns an equivalent grammar in Chomsky Normal Form
-def ConvertToCNF(g):
+def ConvertToCNF(g, p):
     g = copy.deepcopy(g)
-    convertMixedRules(g)
-    removeUnitProductions(g)
-    removeLongRules(g)
+    p = copy.deepcopy(p)
+    convertMixedRules(g, p)
+    removeUnitProductions(g, p)
+    removeLongRules(g, p)
 
-    return g
+    return (g, p)
 
 ######################################################
 
