@@ -1,4 +1,6 @@
 from __future__ import division
+import copy
+from collections import deque
 
 grammar = {}
 with open("probs.txt","r") as f:
@@ -17,7 +19,17 @@ def getprobs(grammar):
     total = sum(RHS.values())
     for rule in RHS:
       probs[key, rule] = RHS[rule]/total
-    [list(x) for x in RHS.keys()]
+    ## Below commented out code is for figuring out what's up with the grammar
+    ## i = 0
+    ## for x in RHS.keys():
+    ##     if type(x) == type("what"):
+    ##         print "in getprobs: found a string: " + x
+    ##         #print key, RHS
+    ##         print "key: " + str(key) + "; RHS: " + str(RHS)
+    ##     if i == 5:
+    ##         print "regular one:"
+    ##         print "key: " + str(key) + "; RHS: " + str(RHS)
+    ##     i = i+1
     newgrammar[key] = [list(x) for x in RHS.keys()] #RHS.keys()
   return newgrammar, probs
 
@@ -25,11 +37,10 @@ newgrammar, probs = getprobs(grammar)
 terminals, terminalprobs = getprobs(terms)
 
 ############### Convert to CNF stuff ##################
-# Name: Daniel Washburn
-import copy
-from collections import deque
-
 # TODO: to identify terminals and nonterminals, just look at the keys of the grammar dictionary - they are non-terminals, others are terminals
+# TODO: fix bug w/ removing unit productions - maybe switch to testing on smaller, baby grammar w/ probabilities
+# TODO: figure out what's going on with things being in grammar that shouldn't - some code investigating this is commented out in extract.py
+# TODO: adapt CNF converter to take a grammar and a probability dict, and return a modified version of each.
 
 
 terminals = set(['that','this','a','book','flight','meal','money','include','prefer','I','she','me','Houston','TWA','does','from','to','on','near','through','test','the'])
@@ -48,11 +59,6 @@ def nameMaker():
         return ret
     return inner
 getNewName = nameMaker() # using the above closure, when we say `getNewName` we will always get a new string each time
-
-# grammar =  {'S':[['NP','VP'],['Aux','NP','VP'],['VP']],'NP':[['Pronoun'],['Proper-Noun'],['Det','Nominal']],'Nominal':[['Noun'],['Nominal','Noun'],['Nominal','PP']],'VP':[['Verb'],['Verb','NP'],['Verb','NP','PP'],['Verb','PP'],['VP','PP']],'PP':[['Preposition','NP']],'Det':['that','this','a'],'Noun':['book','flight','meal','money'],'Verb':['book','include','prefer'],'Pronoun':['I','she','me'],'Proper-Noun':['Houston','TWA'],'Aux':['does'],'Preposition':['from','to','on','near','through']} # original version
-grammar = {'S':[['NP','VP'],['Aux','NP','VP'],['VP']], 'NP':[['Pronoun'],['Proper-Noun'],['Det','Nominal']], 'Nominal':[['Noun'],['Nominal','Noun'],['Nominal','PP']], 'VP':[['Verb'],['Verb','NP'],['Verb','NP','PP'],['Verb','PP'],['VP','PP']], 'PP':[['Preposition','NP']], 'Det':[['that'], ['this'], ['the'], ['a']], 'Noun':[['book'], ['flight'], ['meal'], ['money']], 'Verb':[['book'], ['include'],['prefer']], 'Pronoun':[['I'], ['she'], ['me']], 'Proper-Noun':[['Houston'], ['TWA']], 'Aux':[['does']], 'Preposition':[['from'], ['to'], ['on'], ['near'], ['through']]} # my version - all rhs values are lists of lists (each list being a rule)
-# also added the word "the" to the determiners
-
 
 # This function determines whether a grammar is in Chomsky Normal Form
 def InCNF(g):
