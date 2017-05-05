@@ -19,6 +19,8 @@ def addrule(tree, leaves):
         probs[lhs][rhs] = 1
 
     else:
+      if type(lhs) == type((1,2)):
+        print lhs
       probs[lhs] = {}
       probs[lhs][rhs] = 1
       grammar[lhs] = [rhs2]
@@ -31,6 +33,8 @@ def addrule(tree, leaves):
     pos1 = (pos)
     pos2 = [pos]
     if pos in grammar:
+      if type(pos) == type((1,2)):
+        print pos
       grammar[pos].append(terminal2)
       if terminal in probs[pos]:
         probs[pos][terminal] += 1
@@ -38,6 +42,8 @@ def addrule(tree, leaves):
         probs[pos][terminal] = 1
     else:
       grammar[pos] = [terminal2]
+      if type(pos) == type((1,2)):
+        print pos
       probs[pos] = {}
       probs[pos][terminal] = 1
 

@@ -23,6 +23,8 @@ def getprobs(grammar):
 newgrammar, probs = getprobs(grammar)
 terminals, terminalprobs = getprobs(terms)
 
+print newgrammar['sps00']
+
 # Extra Credit (optional): Modify your CKYRecognizer function to instead return a valid parse of the string, if one exists.
 def CKYParser(g,s):
   ss = s
@@ -30,7 +32,6 @@ def CKYParser(g,s):
   rev = [(value, tup[0]) for tup in g.items() for value in tup[1]]
   table = [[[] for j in range(len(s)+1)] for i in range(len(s))]
   parseTable = [[[] for j in range(len(s)+1)] for i in range(len(s))]
-  probTable = [[[] for j in range(len(s)+1)] for i in range(len(s))]
   #add the LHS of all the rules that go to word[j] in the grammar
   for j in range(1,len(s)+1):
     lhs = [tup[1] for tup in rev if tup[0] == s[j-1]]
