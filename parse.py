@@ -105,21 +105,25 @@ def findUnitProductionChains(g):
         rule_list = g[left_side]
         for rule in rule_list:
             if (len(rule) == 1) and (rule[0] in nonterminals): # string comparison
-                unitChains.add( (left_side, rule[0]) )
+                thisProb = probs[(left_side, tuple(rule[0]))] # probability of this rule
+                unitChains.add( (left_side, rule[0], thisProb) )
     foundSome = True
     while foundSome:
         #print "loop2"
         foundSome = False
         newOnes = set([])
-        for pair in unitChains:
+        for triple in unitChains:
             #print "loop3"
             #print pair
-            A, B = pair
+            A, B, p = triple
             for rule in g[B]:
                 #print B + " -> " + str(rule)
                 if (len(rule) == 1) and (rule[0] in nonterminals): # string comparison
                     #print "got here"
-                    new = (A, rule[0])
+                    probAtoB = probs[ ( A, tuple([B]) ) ]
+                    probBtoNext = probs[ ( B, tuple(rule) ) ]
+                    newProb = probAtoB * probBtoNext
+                    new = (A, rule[0], newProb)
                     #print new
                     #print (new not in unitChains)
                     if (new not in unitChains) and (new not in newOnes): # string comparison
@@ -135,11 +139,15 @@ def findUnitProductionChains(g):
 # Does not return anything - it modifies the given grammar.    
 def removeUnitProductions(g):
     unitChains = findUnitProductionChains(g)
-    for pair in unitChains:
-        A, B = pair
+    for triple in unitChains:
+        A, B, p = triple
         for rule in g[B]:
             g[A].append(rule)
+            #probs[(dummy, tuple([rule[i]]))] = 1 # example probs usage
+            probBtoRule = probs[ ( B, tuple(rule) ) ]
+            probs[(A, tuple(rule))] = p * probBtoRule # TODO: need to know probability of unit chain from A to B
         g[A].remove([B])
+        del g[B] # no longer need rule B at all
 
 
 # Takes a single "long" rule: lhs is the nonterminal on the left-hand-side, rhs is the right-hand-side of the rule, and returns a suitable set of replacement rules in CNF, as tuples (i.e., expandRule("Z", ["A", "B", "C", "D"]) -> [("Z", ["A", "X1"]), ("X1", ["B", "X2"]), ("X2", ["C", "D"])]
