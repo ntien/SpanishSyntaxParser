@@ -31,6 +31,7 @@ def checkRule(rule, nonterminals):
   return True
 
 # This function takes a grammar and returns an equivalent grammar in Chomsky Normal Form
+
 def ConvertToCNF(g, old):
     new = {}
     if InCNF(g):
@@ -67,7 +68,6 @@ def update(LHS, RHS, new, old, nonterminals):
   if len(RHS) > 2:
     first, second = RHS[0], RHS[1]
     newrule = first + "_" + second
-
     new[newrule] = [[first, second]]
     newRHS = [newrule] + RHS[2:]
     if len(newRHS) > 2:
@@ -122,6 +122,8 @@ def CKYRecognizer(g,s):
 
 # Extra Credit (optional): Modify your CKYRecognizer function to instead return a valid parse of the string, if one exists.
 
+
+#grammar is of form
 def CKYParser(g,s):
   ss = s
   s = s.split()
@@ -238,6 +240,7 @@ else:
 
 # Extra Credit: Add tests of CKYParse here.
 
+print newgrammar
 CKYParser(newgrammar,'book the flight through Houston') # Should return True!
 f1 = CKYParser(newgrammar, 'book the') #should return False
 f2 = CKYParser(newgrammar, 'flight through') #False
