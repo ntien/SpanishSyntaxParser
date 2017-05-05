@@ -2,6 +2,8 @@
 import copy
 from collections import deque
 
+# TODO: to identify terminals and nonterminals, just look at the keys of the grammar dictionary - they are non-terminals, others are terminals
+
 
 terminals = set(['that','this','a','book','flight','meal','money','include','prefer','I','she','me','Houston','TWA','does','from','to','on','near','through','test','the'])
 terminals_CI = {x.lower() for x in terminals}
@@ -54,13 +56,14 @@ def InCNF(g):
 #   rid of rules that mix terminals and nonterminals.
 # Does not return anything - it modifies the given grammar.
 def convertMixedRules(g):
-    for left_side in g:
+    for left_side in g.keys():
         rule_list = g[left_side]
         for rule in rule_list:
             if len(rule) > 1:
                 for i in range(len(rule)):
                     if rule[i] in terminals:
                         dummy = rule[i] + "_dummy"
+                        nonterminals.add(dummy)
                         g[dummy] = rule[i]
                         rule[i] = dummy
 
@@ -150,138 +153,13 @@ def removeLongRules(g):
             else:
                 g[newLHS] = [newRHS]
 
-                
+
 # This function takes a grammar and returns an equivalent grammar in Chomsky Normal Form
 def ConvertToCNF(g):
     g = copy.deepcopy(g)
     convertMixedRules(g)
     removeUnitProductions(g)
     removeLongRules(g)
-    
+
     return g
-
-
-# Just grabbed my tokenizer from lab 3 - takes a string and returns a list of strings, each a word (or punctuation)
-punctuationEtc = ['.', "(", ")", "--", ",", ":", "n't"]
-def containsPunct(string):
-    for punc in punctuationEtc:
-        if punc in string: # string comparison
-            return True
-    return False
-def punctContained(string):
-    for punc in punctuationEtc:
-        if punc in string: # string comparison
-            return punc
-    return False
-def tokenize(text):
-    draft = deque(text.split()) # O(1) append/pop from both ends - efficient stack/queue
-    ret = []
-    while len(draft) > 0:
-        word = draft.popleft()
-        if containsPunct(word):
-            #print("THE WORD: " + word)
-            punc = punctContained(word)
-            #print("THE PUNCTATION: " + punc)
-            if word == punc: # string comparison
-                ret.append(word)
-            else:
-                index = word.find(punc)
-                lastPart = word.split(punc, 1)[1] # split once at the first period found, and return part after the period
-                middle = punc
-                firstPart = word[:index] # everything before the period
-                if punc == '.': # string comparison
-                    if lastPart == '': # final period (at the end of a word), i.e. to end a sentence # string comparison
-                        draft.appendleft(punc)
-                        draft.appendleft(firstPart)
-                    else:
-                        ret.append(word)
-                else:
-                    if lastPart != '':
-                        draft.appendleft(lastPart) # push back onto the stack (there may be more punctuation in this token)
-                    draft.appendleft(middle)
-                    if firstPart != '':
-                        draft.appendleft(firstPart)
-        else: # plain word w/o punctuation in it
-            ret.append(word)
-    return ret
-
-    
-# This function takes a grammar and a string and returns True if that grammar generates that string, False otherwise. 
-def CKYRecognizer(g,s):
-    words = tokenize(s)
-    cols_count = len(words) + 1
-    rows_count = cols_count
-    table = [[set([]) for x in range(cols_count)] for x in range(rows_count)]
-    for j in range(1, len(words)+1):
-        # fill in every POS that word j could be
-        for left_side in g:
-            rule_list = g[left_side]
-            if ([words[j-1]] in rule_list) or ([words[j-1].lower()] in rule_list): # string comparison ???
-                table[j-1][j].add(left_side)
-        
-        for i in range(j-2, -1, -1):         # j-2 (inclusive) down to -1 (exclusive), i.e., j-2 (inlusive) down to 0 (inclusive)
-            for k in range(i+1, j):          # normal - i+1 (inclusive) to j (exclusive), which is i+1 (inclusive) to (j-1) inclusive)
-                for B in table[i][k]:
-                    for C in table[k][j]:
-                        for A in g:
-                            if [B, C] in g[A]: # string comparison ???
-                                table[i][j].add(A)
-    #print table
-
-    return 'S' in table[0][len(words)] # string comparison
-    #return table
-
-
-
-# Extra Credit (optional): Modify your CKYRecognizer function to instead return a valid parse of the string, if one exists.
-def CKYParser(g,s):
-
-    # Fill in your algorithm here
-
-    return []  # Placeholder
-
-######
-testg1 = {'S':[['NP','VP'], ['Aux','VP'], ['VP','NP']]} # should be true
-testg2 = {'S':[['book'], ['flight'], ['that']]} # should be true
-testg3 = {'S':[['book'], ['Aux','VP']]} # should be true
-
-testg4 = {'S':[['NP','VP'], ['Aux'], ['VP','NP']]} # should be false (unit production)
-testg5 = {'S':[['book'], ['Nominal']]} # should be false (unit production)
-testg6 = {'S':[['NP','VP'],['Aux','NP','VP']]} # should be false (long rule)
-testg7 = {'S':[['NP','VP'],['Aux','NP','VP'],['VP']]} # should be false (long rule, unit production)
-testg8 = {'S':[['NP','VP'],['Aux','book']]} # should be false (mixed nonterminals and terminals)
-###### Demonstrations
-
-print InCNF(grammar) # Should return False!
-
-newgrammar = ConvertToCNF(grammar)
-
-print newgrammar
-
-print InCNF(newgrammar) # Should return True!
-
-print CKYRecognizer(newgrammar,'Book the flight through Houston') # Should return True!
-
-# Add more tests of CKYRecognizer here.
-
-print "more CKYRecognizer tests:"
-print CKYRecognizer(newgrammar, 'Houston through the flight book') # should return False!
-print CKYRecognizer(newgrammar, 'Book') # should return True!
-print CKYRecognizer(newgrammar, 'Does the flight through Houston include the money') # should return True!
-print CKYRecognizer(newgrammar, 'Does the flight through Houston include') # should return True!
-print CKYRecognizer(newgrammar, 'the flight through Houston') # should return False!
-print CKYRecognizer(newgrammar, 'include the flight through Houston') # should return True!
-print CKYRecognizer(newgrammar, 'flight through Houston include the money') # should return False!
-print CKYRecognizer(newgrammar, 'Does the flight') # should return False!
-print CKYRecognizer(newgrammar, 'Book that money') # should return True!
-print CKYRecognizer(newgrammar, 'Money that book') # should return False!
-
-
-
-# Extra Credit: Add tests of CKYParse here.
-
-
-
-
-
 
