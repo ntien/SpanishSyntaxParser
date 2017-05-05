@@ -1,0 +1,9 @@
+# OSX operating system files #
+.DS_Store
+.DS_Store?
+
+# temporary files created by vim while editing #
+*.swp
+
+# compiled code #
+*.pyc
