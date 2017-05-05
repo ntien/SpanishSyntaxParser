@@ -2,8 +2,6 @@ import nltk
 from nltk.corpus import cess_esp as cess
 
 sents = cess.parsed_sents()
-#now working with NLTK tree structure
-
 grammar = {}
 probs = {}
 
@@ -26,10 +24,7 @@ def addrule(tree, leaves):
     for subtree in tree:
       addrule(subtree, leaves)
 
-i = 0
 for t in sents:
-  print i
-  i += 1
   l = t.leaves()
   addrule(t, l)
 
