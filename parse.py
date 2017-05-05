@@ -17,7 +17,8 @@ def getprobs(grammar):
     total = sum(RHS.values())
     for rule in RHS:
       probs[key, rule] = RHS[rule]/total
-    newgrammar[key] = RHS.keys()
+    [list(x) for x in RHS.keys()]
+    newgrammar[key] = [list(x) for x in RHS.keys()] #RHS.keys()
   return newgrammar, probs
 
 newgrammar, probs = getprobs(grammar)
@@ -90,7 +91,9 @@ def convertMixedRules(g):
                     if rule[i] in terminals:
                         dummy = rule[i] + "_dummy"
                         nonterminals.add(dummy)
-                        g[dummy] = rule[i]
+                        g[dummy] = [[rule[i]]]
+                        probs[(dummy, tuple([rule[i]]))] = 1
+                        #print left_side, rule, rule[i], dummy
                         rule[i] = dummy
 
 
