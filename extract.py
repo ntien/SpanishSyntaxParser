@@ -4,6 +4,7 @@ from nltk.corpus import cess_esp as cess
 sents = cess.parsed_sents()
 grammar = {}
 probs = {}
+terminals = {}
 
 def addrule(tree, leaves):
   if tree[0] not in leaves:
@@ -23,6 +24,32 @@ def addrule(tree, leaves):
       grammar[lhs] = [rhs2]
     for subtree in tree:
       addrule(subtree, leaves)
+  else:
+    terminal = (tree[0])
+    terminal2 = [tree[0]]
+    pos = tree.label()
+    pos1 = (pos)
+    pos2 = [pos]
+    if pos in grammar:
+      grammar[pos].append(terminal2)
+      if terminal in probs[pos]:
+        probs[pos][terminal] += 1
+      else:
+        probs[pos][terminal] = 1
+    else:
+      grammar[pos] = [terminal2]
+      probs[pos] = {}
+      probs[pos][terminal] = 1
+
+    if terminal in terminals:
+      if pos1 in terminals[terminal]:
+        terminals[terminal][pos1] += 1
+      else:
+        terminals[terminal][pos1] = 1
+    else:
+      terminals[terminal] = {}
+      terminals[terminal][pos1] = 1
+
 
 for t in sents:
   l = t.leaves()
@@ -35,4 +62,5 @@ with open("grammar.txt", "w") as f:
 with open("probs.txt", "w") as f:
   f.write(repr(probs))
 
-
+with open("terminalprobs.txt","w") as f:
+  f.write(repr(terminals))

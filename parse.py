@@ -5,19 +5,23 @@ with open("probs.txt","r") as f:
   x = f.read()
   grammar = eval(x)
 
-probs = {}
-newgrammar = {}
+with open("terminalprobs.txt","r") as f:
+  x = f.read()
+  terms = eval(x)
 
-for key in grammar:
-  RHS = grammar[key]
-  total = sum(RHS.values())
-  for rule in RHS:
-    probs[key, rule] = RHS[rule]/total
-  newgrammar[key] = RHS.keys()
-  break
+def getprobs(grammar):
+  newgrammar = {}
+  probs = {}
+  for key in grammar:
+    RHS = grammar[key]
+    total = sum(RHS.values())
+    for rule in RHS:
+      probs[key, rule] = RHS[rule]/total
+    newgrammar[key] = RHS.keys()
+  return newgrammar, probs
 
-print newgrammar
-print probs
+newgrammar, probs = getprobs(grammar)
+terminals, terminalprobs = getprobs(terms)
 
 # Extra Credit (optional): Modify your CKYRecognizer function to instead return a valid parse of the string, if one exists.
 def CKYParser(g,s):
@@ -26,6 +30,7 @@ def CKYParser(g,s):
   rev = [(value, tup[0]) for tup in g.items() for value in tup[1]]
   table = [[[] for j in range(len(s)+1)] for i in range(len(s))]
   parseTable = [[[] for j in range(len(s)+1)] for i in range(len(s))]
+  probTable = [[[] for j in range(len(s)+1)] for i in range(len(s))]
   #add the LHS of all the rules that go to word[j] in the grammar
   for j in range(1,len(s)+1):
     lhs = [tup[1] for tup in rev if tup[0] == s[j-1]]
