@@ -2,7 +2,7 @@ from __future__ import division
 import copy
 from collections import deque
 
-english = False # set this when testing on an english grammar, such as toygrammar.toy and toygrammar.probs. Otherwise, set false
+english = True # set this when testing on an english grammar, such as toygrammar.toy and toygrammar.probs. Otherwise, set false
 test = True
 
 grammar = {}
@@ -225,6 +225,20 @@ def hasUnitProduction(g):
                 return True
     return False
 
+def hasUnitProduction2(g):
+    for lhs in g:
+        A = lhs
+        for indexOfRule in range(len(g[A])):
+            rule = g[A][indexOfRule]
+            #print "here"
+            if (len(rule) == 1) and rule[0] in nonterminals:
+                B = rule[0]
+                #print "here: A:", A, "B:", B, "g[B]: ", g[B]
+                for bRule in g[B]:
+                    if (len(bRule) == 1) and bRule[0] in terminals:
+                        return True
+    return False
+
 def findNextUnitProduction(g):
     for lhs in g:
         A = lhs
@@ -233,25 +247,30 @@ def findNextUnitProduction(g):
             if (len(rule) == 1) and rule[0] in nonterminals:
                 B = rule[0]
                 for bRule in g[B]:
-                    if (len(rule) == 1) and rule[0] in terminals:
+                    if (len(bRule) == 1) and bRule[0] in terminals:
                         return (A, indexOfRule)
     print "~~~BADMOJO~~~"
 
 def removeUnitProductions(g, theProbs):
-    while hasUnitProduction(g):
+    print "entered"
+    while hasUnitProduction2(g):
+        #print "in loop"
         A, indexOfRule = findNextUnitProduction(g)
         lhs = A
         rule = g[lhs][indexOfRule]
         B = rule[0]
+        #print "good unit production: A:", A, "B:", B, "g[B]: ", g[B]
         len1BRules = [x[0] for x in g[B] if len(x) == 1]
-        terminalBRules = [x in terminals for x in len1BRules]
-        if any(terminalBRules): # if B goes to any terminal
+        areTerminalBRules = [x in terminals for x in len1BRules]
+        terminalBRules = [x for x in len1BRules if x in terminals]
+        if any(areTerminalBRules): # if B goes to any terminal
             probAtoB = theProbs[ ( A, tuple([B]) ) ]
             for bRule in terminalBRules:
                 probBtoBRule = theProbs[ ( B, tuple([bRule]) ) ]
-                g[A] = bRule
+                g[A].append([bRule])
                 theProbs[ ( A, tuple([bRule]) ) ] = probAtoB * probBtoBRule
-            g[A].remove([B])
+            if [B] in g[A]:
+                g[A].remove([B])
             del theProbs[ (A, tuple([B]) ) ]
 
 # Takes a single "long" rule: lhs is the nonterminal on the left-hand-side, rhs is the right-hand-side of the rule, and returns a suitable set of replacement rules in CNF, as tuples (i.e., expandRule("Z", ["A", "B", "C", "D"]) -> [("Z", ["A", "X1"]), ("X1", ["B", "X2"]), ("X2", ["C", "D"])]
@@ -308,6 +327,9 @@ def ConvertToCNF(g, p):
     p = copy.deepcopy(p)
     convertMixedRules(g, p)
     removeUnitProductions(g, p)
+    print repr(g)
+    print
+    print repr(p)
     removeLongRules(g, p)
 
     return (g, p)
