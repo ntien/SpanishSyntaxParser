@@ -189,23 +189,59 @@ def convertMixedRules(g, p):
 ##             g[A].remove([B])
 ##         #del g[B] # no longer need rule B at all
 
+### def hasUnitProduction(g):
+###     for lhs in g:
+###         for indexOfRule in range(len(g[lhs])):
+###             rule = g[lhs][indexOfRule]
+###             if (len(rule) == 1) and rule[0] in nonterminals:
+###                 return (True, (lhs, indexOfRule))
+###     return (False, False)
+### 
+### def removeUnitProductions(g, theProbs):
+###     while True: # because of next 3 lines, effectively `while there is a unit production`
+###         boolean, tup = hasUnitProduction(g)
+###         if not boolean:
+###             break
+### 
+###         lhs, indexOfRule = tup
+###         A = lhs
+###         rule = g[lhs][indexOfRule]
+###         B = rule[0]
+###         len1BRules = [x[0] for x in g[B] if len(x) == 1]
+###         terminalBRules = [x in terminals for x in len1BRules]
+###         if any(terminalBRules): # if B goes to any terminal
+###             probAtoB = theProbs[ ( A, tuple([B]) ) ]
+###             for bRule in terminalBRules:
+###                 probBtoBRule = theProbs[ ( B, tuple([bRule]) ) ]
+###                 g[A] = bRule
+###                 theProbs[ ( A, tuple([bRule]) ) ] = probAtoB * probBtoBRule
+###             g[A].remove([B])
+###             del theProbs[ (A, tuple([B]) ) ]
+
 def hasUnitProduction(g):
     for lhs in g:
-        for indexOfRule in range(len(g[lhs])):
-            rule = g[lhs][indexOfRule]
+        for rule in g[lhs]:
             if (len(rule) == 1) and rule[0] in nonterminals:
-                return (True, (lhs, indexOfRule))
+                return True
     return False
 
-def removeUnitProductions(g, theProbs):
-    while True: # because of next 3 lines, effectively `while there is a unit production`
-        boolean, tup = hasUnitProduction(g)
-        if not boolean:
-            break
-
-        lhs, indexOfRule = tup
+def findNextUnitProduction(g):
+    for lhs in g:
         A = lhs
-        rule = g[lhs]indexOfRule
+        for indexOfRule in range(len(g[A])):
+            rule = g[A][indexOfRule]
+            if (len(rule) == 1) and rule[0] in nonterminals:
+                B = rule[0]
+                for bRule in g[B]:
+                    if (len(rule) == 1) and rule[0] in terminals:
+                        return (A, indexOfRule)
+    print "~~~BADMOJO~~~"
+
+def removeUnitProductions(g, theProbs):
+    while hasUnitProduction(g):
+        A, indexOfRule = findNextUnitProduction(g)
+        lhs = A
+        rule = g[lhs][indexOfRule]
         B = rule[0]
         len1BRules = [x[0] for x in g[B] if len(x) == 1]
         terminalBRules = [x in terminals for x in len1BRules]
