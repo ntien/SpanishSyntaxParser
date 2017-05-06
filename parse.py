@@ -2,7 +2,7 @@ from __future__ import division
 import copy
 from collections import deque
 
-english = True # set this when testing on an english grammar, such as toygrammar.toy and toygrammar.probs. Otherwise, set false
+english = False # set this when testing on an english grammar, such as toygrammar.toy and toygrammar.probs. Otherwise, set false
 test = True
 
 grammar = {}
@@ -252,7 +252,7 @@ def findNextUnitProduction(g):
     print "~~~BADMOJO~~~"
 
 def removeUnitProductions(g, theProbs):
-    print "entered"
+    #print "entered"
     while hasUnitProduction2(g):
         #print "in loop"
         A, indexOfRule = findNextUnitProduction(g)
@@ -327,9 +327,9 @@ def ConvertToCNF(g, p):
     p = copy.deepcopy(p)
     convertMixedRules(g, p)
     removeUnitProductions(g, p)
-    print repr(g)
-    print
-    print repr(p)
+    #print repr(g)
+    #print
+    #print repr(p)
     removeLongRules(g, p)
 
     return (g, p)
