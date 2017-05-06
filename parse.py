@@ -2,6 +2,8 @@ from __future__ import division
 import copy
 from collections import deque
 
+english = False # set this when testing on an english grammar, such as toygrammar.toy and toygrammar.probs. Otherwise, set false
+
 grammar = {}
 with open("probs.txt","r") as f:
   x = f.read()
@@ -42,14 +44,18 @@ terminals, terminalprobs = getprobs(terms)
 # TODO: figure out what's going on with things being in grammar that shouldn't - some code investigating this is commented out in extract.py
 
 
-# Terminals for english - uncomment following two lines when testing with an english grammar
-# terminals = set(['that','this','a','book','flight','meal','money','include','prefer','I','she','me','Houston','TWA','does','from','to','on','near','through','test','the', 'stealer']) # TODO: terminals defined twice - remove this one
-# terminals_CI = {x.lower() for x in terminals}
+# Terminals for english
+if english:
+    terminals = set(['that','this','a','book','flight','meal','money','include','prefer','I','she','me','Houston','TWA','does','from','to','on','near','through','test','the', 'stealer']) # TODO: terminals defined twice - remove this one
+    terminals_CI = {x.lower() for x in terminals}
 
-nonterminals = set(newgrammar.keys()) # nonterminals for scraped spanish grammar
 # Nonterminals for english
-#nonterminals = set(['S','NP','Nominal','VP','PP','Det','Noun','Verb','Pronoun','Proper-Noun','Aux','Preposition'])
-#nonterminals_CI = {x.lower() for x in nonterminals}
+if english:
+    # Nonterminals for english
+    nonterminals = set(['S','NP','Nominal','VP','PP','Det','Noun','Verb','Pronoun','Proper-Noun','Aux','Preposition'])
+    nonterminals_CI = {x.lower() for x in nonterminals}
+else:
+    nonterminals = set(newgrammar.keys()) # nonterminals for scraped spanish grammar
 
 def nameMaker():
     class context:
