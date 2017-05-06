@@ -1,5 +1,5 @@
 # Name: Nora Tien
-
+from __future__ import division
 grammar = {'S':[['NP','VP'],['Aux','NP','VP'],['VP']],'NP':[['Pronoun'],['Proper-Noun'],['Det','Nominal']],'Nominal':[['Noun'],['Nominal','Noun'],['Nominal','PP']],'VP':[['Verb'],['Verb','NP'],['Verb','NP','PP'],['Verb','PP'],['VP','PP']],'PP':[['Preposition','NP']],'Det':['that','this','a', 'the'],'Noun':['book','flight','meal','money'],'Verb':['book','include','prefer'],'Pronoun':['I','she','me'],'Proper-Noun':['Houston','TWA'],'Aux':['does'],'Preposition':['from','to','on','near','through']}
 
 # This function determines whether a grammar is in Chomsky Normal Form
@@ -124,21 +124,41 @@ def CKYRecognizer(g,s):
 
 
 #grammar is of form
-def CKYParser(g,s):
+#probability is product of probs * probability of rule
+def CKYParser(g,probs, s):
   ss = s
   s = s.split()
   rev = [(value, tup[0]) for tup in g.items() for value in tup[1]]
   table = [[[] for j in range(len(s)+1)] for i in range(len(s))]
   parseTable = [[[] for j in range(len(s)+1)] for i in range(len(s))]
+  probTable = [[[] for j in range(len(s)+1)] for i in range(len(s))]
   #add the LHS of all the rules that go to word[j] in the grammar
   for j in range(1,len(s)+1):
     lhs = [tup[1] for tup in rev if tup[0] == s[j-1]]
+    word = s[j-1]
+    p = [(rule, probs[(rule, word)]) for rule in lhs]
     table[j-1][j] = lhs
-    parseTable[j-1][j] = (lhs, s[j-1])
+    parseTable[j-1][j] = (lhs, word)
+    probTable[j-1][j] = p
     for i in range(j-2, -1, -1):
       for k in range(i+1, j):
-        cc = table[k][j]
         bb = table[i][k]
+        cc = table[k][j]
+        bbp = probTable[i][k]
+        ccp = probTable[k][j]
+
+        for bp in bbp:
+          for cp in ccp:
+            plhs = []
+            for tup in rev:
+              if len(bp) > 0 and len(cp) > 0:
+                if tup[0] == [bp[0], cp[0]]:
+                  product = bp[1] * cp[1] * probs[(tup[1], (bp[0], cp[0]))]
+                  plhs.append((tup[1], product))
+            if len(plhs) > 0:
+              for pl in plhs:
+                if len(pl) > 0:
+                  probTable[i][j] = list(set(probTable[i][j] + [(pl[0], pl[1], (k, j), (i, k))]))
         for b in bb:
           for c in cc:
             #want to include k,j and i,k as pointers
@@ -149,16 +169,10 @@ def CKYParser(g,s):
                 parseTable[i][j] = list(set(parseTable[i][j] + [(l, (k, j),(i,k))]))
 
   if "S" in table[0][-1]:
-    '''
-    i = 0
-    for row in parseTable:
-      i += 1
-      print row[i:]
-    '''
-    print "\n"
     parses = [rule for rule in parseTable[0][-1] if rule[0] == "S"]
     trees = [getParse(parseTable, s,g, True, "") for s in parses]
-
+    parse = sorted([rule for rule in probTable[0][-1] if rule[0] == "S"], key=lambda x: x[1])[-1]
+    trees2 = getMostProbableParse(probTable, parse, g, True, "")
     print ss
     print "\n"
     for tree in trees:
@@ -169,6 +183,55 @@ def CKYParser(g,s):
     return True
   else:
     return False
+
+def getMostProbableParse(table, start, grammar, startsymbol, terminal):
+    #base case: we reached a POS with no indices
+    if type(start) == type("string"):
+      return [terminal]
+    if len(start) < 3:
+      print start
+      return [terminal]
+    i = start[3][0]
+    j = start[2][1]
+    k = start[2][0]
+    ruledown = table[k][j]
+    ruleleft = table[i][k]
+    if not ruleleft or not ruledown:
+      return [start[0]]
+    else:
+      parses = []
+      terminaldown = False
+      terminalleft = False
+      worddown = ""
+      wordleft = ""
+      if type(ruledown) == type(()):
+        terminaldown = True
+        worddown = ruledown[1]
+        ruledown = ruledown[0]
+      if type(ruleleft) == type(()):
+        terminalleft = True
+        wordleft = ruleleft[1]
+        ruleleft = ruleleft[0]
+
+      for rd in ruledown:
+        for rl in ruleleft:
+          rule1 = rl
+          rule2 = rd
+          if type(rule1) != type("str"):
+            rule1 = rl[0]
+          if type(rule2) != type("str"):
+            rule2 = rd[0]
+
+          #check to see if this rule should be expanded (did it actually come from start?
+          RHS = grammar[start[0]]
+          thisRHS = [rule1, rule2]
+          if thisRHS in RHS:
+            if startsymbol:
+              parses.append([[start[0]] + [[rule1] + [rule2] + [getMostProbableParse(table, rl, grammar, False, wordleft) + getMostProbableParse(table, rd, grammar, False, worddown)]]])
+            else:
+              parses.append([[rule1] + [rule2] + [getMostProbableParse(table, rl, grammar, False, wordleft) + getMostProbableParse(table, rd, grammar, False, worddown)]])
+      return parses
+
 
 #this function takes a table (with pointers), a start symbol and the pointers to which entries in the table it was derived from, a grammar, and a terminal (that is an empty string unless the start is POS tag in which case it deserives a terminal
 #returns all parses
@@ -219,12 +282,26 @@ def getParse(table, start, grammar, startsymbol, terminal):
 
 
 # Demonstrations
-
-print InCNF(grammar) # Should return False!
+#print InCNF(grammar) # Should return False!
+import random
 newgrammar = ConvertToCNF(grammar, grammar)
-print InCNF(newgrammar) # Should return True!
-print CKYRecognizer(newgrammar,'book the flight through Houston') # Should return True!
+probs = {}
+for key in newgrammar:
+  RHS = newgrammar[key]
+  if any(isinstance(i, list) for i in RHS) or len(RHS) > 1:
+    for rule in newgrammar[key]:
+      if type(rule) == type('string'):
+        rule = (rule)
+      else:
+        rule = tuple(rule)
+      probs[(key, rule)] = random.randint(1,10)/10
+  else:
+    probs[(key, tuple(RHS))] = random.randint(1,10)/10
 
+#print InCNF(newgrammar) # Should return True!
+#print CKYRecognizer(newgrammar,'book the flight through Houston') # Should return True!
+
+'''
 # Add more tests of CKYRecognizer here.
 f1 = CKYRecognizer(newgrammar, 'book the') #should return False
 f2 = CKYRecognizer(newgrammar, 'flight through') #False
@@ -239,9 +316,10 @@ else:
   print "what"
 
 # Extra Credit: Add tests of CKYParse here.
-
 print newgrammar
-CKYParser(newgrammar,'book the flight through Houston') # Should return True!
+'''
+CKYParser(newgrammar, probs, 'book the flight through Houston') # Should return True!
+'''
 f1 = CKYParser(newgrammar, 'book the') #should return False
 f2 = CKYParser(newgrammar, 'flight through') #False
 f3 = CKYParser(newgrammar, 'flight through Houston') #False
@@ -252,7 +330,7 @@ t3 = CKYParser(newgrammar, 'she prefer that book') #True
 if not f1 and not f2 and not f3 and t1 and t2 and t3:
   print "All tests passed for CKY Parser \n"
 
-
+'''
 
 
 
