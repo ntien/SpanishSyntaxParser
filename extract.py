@@ -3,11 +3,11 @@ from nltk.corpus import cess_esp as cess
 
 sents = cess.parsed_sents()
 
-test = True
+test = False
 some_sents = [sents[1]] + [sents[12]] + [sents[15]] + sents[19:26]
 easy_sent = sents[20]
 #sents = [easy_sent]
-sents = some_sents
+#sents = some_sents
 
 def print_sent(sent):
     for word in sent.leaves():
