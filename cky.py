@@ -139,14 +139,21 @@ def CKYParser(g,probs, s):
     p = [(rule, probs[(rule, word)]) for rule in lhs]
     table[j-1][j] = lhs
     parseTable[j-1][j] = (lhs, word)
-    probTable[j-1][j] = p
+    probTable[j-1][j] = (p, word)
     for i in range(j-2, -1, -1):
       for k in range(i+1, j):
         bb = table[i][k]
         cc = table[k][j]
         bbp = probTable[i][k]
         ccp = probTable[k][j]
-
+        if bbp:
+          if len(bbp) > 1:
+            if type(bbp[1]) == type("string"):
+              bbp = bbp[0]
+        if ccp:
+          if len(ccp) > 1:
+            if type(ccp[1]) == type("string"):
+              ccp = ccp[0]
         for bp in bbp:
           for cp in ccp:
             plhs = []
@@ -172,30 +179,25 @@ def CKYParser(g,probs, s):
     parses = [rule for rule in parseTable[0][-1] if rule[0] == "S"]
     trees = [getParse(parseTable, s,g, True, "") for s in parses]
     parse = sorted([rule for rule in probTable[0][-1] if rule[0] == "S"], key=lambda x: x[1])[-1]
-    trees2 = getMostProbableParse(probTable, parse, g, True, "")
-    print ss
-    print "\n"
-    for tree in trees:
-      for tt in tree:
-        for t in tt:
-          print t
-          print "\n"
+    trees2 = getMostProbableParse(probTable, parse, g, True, "", probs)
+    print trees2
     return True
   else:
     return False
 
-def getMostProbableParse(table, start, grammar, startsymbol, terminal):
+def getMostProbableParse(table, start, grammar, startsymbol, terminal, probs):
     #base case: we reached a POS with no indices
     if type(start) == type("string"):
       return [terminal]
     if len(start) < 3:
-      print start
       return [terminal]
     i = start[3][0]
     j = start[2][1]
     k = start[2][0]
     ruledown = table[k][j]
     ruleleft = table[i][k]
+    product = start[1] #from this, and probs dict, should be able to find rule
+
     if not ruleleft or not ruledown:
       return [start[0]]
     else:
@@ -204,14 +206,14 @@ def getMostProbableParse(table, start, grammar, startsymbol, terminal):
       terminalleft = False
       worddown = ""
       wordleft = ""
-      if type(ruledown) == type(()):
+      if type(ruledown[-1]) == type("string"):
         terminaldown = True
-        worddown = ruledown[1]
-        ruledown = ruledown[0]
-      if type(ruleleft) == type(()):
+        worddown = ruledown[-1]
+        ruledown = ruledown[:-1][0]
+      if type(ruleleft[-1]) == type("string"):
         terminalleft = True
-        wordleft = ruleleft[1]
-        ruleleft = ruleleft[0]
+        wordleft = ruleleft[-1]
+        ruleleft = ruleleft[:-1][0]
 
       for rd in ruledown:
         for rl in ruleleft:
@@ -221,15 +223,19 @@ def getMostProbableParse(table, start, grammar, startsymbol, terminal):
             rule1 = rl[0]
           if type(rule2) != type("str"):
             rule2 = rd[0]
-
+          p1 = rd[1]
+          p2 = rl[1]
+          lhs = start[0]
           #check to see if this rule should be expanded (did it actually come from start?
           RHS = grammar[start[0]]
           thisRHS = [rule1, rule2]
           if thisRHS in RHS:
-            if startsymbol:
-              parses.append([[start[0]] + [[rule1] + [rule2] + [getMostProbableParse(table, rl, grammar, False, wordleft) + getMostProbableParse(table, rd, grammar, False, worddown)]]])
-            else:
-              parses.append([[rule1] + [rule2] + [getMostProbableParse(table, rl, grammar, False, wordleft) + getMostProbableParse(table, rd, grammar, False, worddown)]])
+            p = p1 * p2 * probs[(lhs, (rule1, rule2))]
+            if p == product:
+              if startsymbol:
+                parses.append([[product] + [start[0]] + [[rule1] + [rule2] + [getMostProbableParse(table, rl, grammar, False, wordleft, probs) + getMostProbableParse(table, rd, grammar, False, worddown, probs)]]])
+              else:
+                parses.append([[rule1] + [rule2] + [getMostProbableParse(table, rl, grammar, False, wordleft, probs) + getMostProbableParse(table, rd, grammar, False, worddown, probs)]])
       return parses
 
 
