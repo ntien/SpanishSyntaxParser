@@ -38,9 +38,7 @@ def getprobs(grammar):
 newgrammar, probs = getprobs(grammar)
 terminals, terminalprobs = getprobs(terms)
 
-<<<<<<< HEAD
-print newgrammar['sps00']
-=======
+#print newgrammar['sps00']
 ############### Convert to CNF stuff ##################
 # TODO: to identify terminals and nonterminals, just look at the keys of the grammar dictionary - they are non-terminals, others are terminals
 # TODO: fix bug w/ removing unit productions - maybe switch to testing on smaller, baby grammar w/ probabilities
@@ -237,8 +235,6 @@ def ConvertToCNF(g, p):
     return (g, p)
 
 ######################################################
-
->>>>>>> 8143c7fc4475c33363ee5f1825bd9b3c44ba681f
 
 # Extra Credit (optional): Modify your CKYRecognizer function to instead return a valid parse of the string, if one exists.
 def CKYParser(g,s):
