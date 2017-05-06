@@ -3,13 +3,19 @@ import copy
 from collections import deque
 
 english = False # set this when testing on an english grammar, such as toygrammar.toy and toygrammar.probs. Otherwise, set false
+test = True
 
 grammar = {}
-with open("probs.txt","r") as f:
+fname1 = "probs.txt"
+fname2 = "terminalprobs.txt"
+if test:
+    fname1 = "test" + fname1
+    fname2 = "test" + fname2
+with open(fname1,"r") as f:
   x = f.read()
   grammar = eval(x)
 
-with open("terminalprobs.txt","r") as f:
+with open(fname2,"r") as f:
   x = f.read()
   terms = eval(x)
 
