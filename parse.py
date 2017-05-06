@@ -40,14 +40,19 @@ terminals, terminalprobs = getprobs(terms)
 # TODO: to identify terminals and nonterminals, just look at the keys of the grammar dictionary - they are non-terminals, others are terminals
 # TODO: fix bug w/ removing unit productions - maybe switch to testing on smaller, baby grammar w/ probabilities
 # TODO: figure out what's going on with things being in grammar that shouldn't - some code investigating this is commented out in extract.py
-# TODO: adapt CNF converter to take a grammar and a probability dict, and return a modified version of each.
 
+# uncomment next line if testing on toy grammar (miniature set of english terminals/words)
+terminals = set(['that','this','a','book','flight','meal','money','include','prefer','I','she','me','Houston','TWA','does','from','to','on','near','through','test','the', 'stealer'])
+#terminals_CI = {x.lower() for x in terminals}
 
-terminals = set(['that','this','a','book','flight','meal','money','include','prefer','I','she','me','Houston','TWA','does','from','to','on','near','through','test','the', 'stealer']) # TODO: terminals defined twice - remove this one
-terminals_CI = {x.lower() for x in terminals}
+# uncomment next two lines if testing on toy grammar
+nonterminals = set(['S','NP','Nominal','VP','PP','Det','Noun','Verb','Pronoun','Proper-Noun','Aux','Preposition']) #english nonterminals
+#nonterminals_CI = {x.lower() for x in nonterminals}
+#nonterminals = set(newgrammar.keys()) # for spanish
 
-nonterminals = set(['S','NP','Nominal','VP','PP','Det','Noun','Verb','Pronoun','Proper-Noun','Aux','Preposition'])
-nonterminals_CI = {x.lower() for x in nonterminals}
+def is_nonterminal(thing):
+    thing in nonterminals # old version - separate list of nonterminals
+    # thing not in terminals
 
 def nameMaker():
     class context:
@@ -70,7 +75,7 @@ def InCNF(g):
                 #print "wrong: long or empty rule"
                 #print "offending rule:   " + str(rule)
             elif len(rule) == 2:
-                bool =  (rule[0] in nonterminals) and (rule[1] in nonterminals) # string comparison
+                bool =  is_nonterminal(rule[0]) and is_nonterminal(rule[1]) # string comparison
                 #if not bool:
                 #    print "wrong: mixed rule"
                 #    print "offending rule:   " + str(rule)
@@ -114,7 +119,7 @@ def findUnitProductionChains(g, theProbs):
         #print "loop1"
         rule_list = g[left_side]
         for rule in rule_list:
-            if (len(rule) == 1) and (rule[0] in nonterminals): # string comparison
+            if (len(rule) == 1) and is_nonterminal(rule[0]): # string comparison
                 thisProb = theProbs[(left_side, tuple(rule))] # probability of this rule
                 unitChains.add( (left_side, rule[0], thisProb) )
     foundSome = True
@@ -128,7 +133,7 @@ def findUnitProductionChains(g, theProbs):
             A, B, p = triple
             for rule in g[B]:
                 #print B + " -> " + str(rule)
-                if (len(rule) == 1) and (rule[0] in nonterminals): # string comparison
+                if (len(rule) == 1) and is_nonterminal(rule[0]): # string comparison
                     #print "got here"
                     #print "~~~~~~~~~!!!!!" + str( type(theProbs))
                     probAtoB = theProbs[ ( A, tuple([B]) ) ]
