@@ -123,72 +123,100 @@ def convertMixedRules(g, p):
                         p[ (left_side, tuple(rule) ) ] = prev_prob
 
 
-# Takes a grammar in the dictionary format and returns a list of tuples, each representing the start and end of a chain of unit productions - so if we have A -> B and B -> C, it should return [('A', 'B'), ('B', 'C'), ('A', 'C')]
-def findUnitProductionChains(g, theProbs):
-    #print "~~~~begin~~~~~!!!!!" + str( type(theProbs))
-    unitChains = set([])
-    for left_side in g:
-        #print "loop1"
-        rule_list = g[left_side]
-        for rule in rule_list:
-            if (len(rule) == 1) and (rule[0] in nonterminals): # string comparison
-                thisProb = theProbs[(left_side, tuple(rule))] # probability of this rule
-                unitChains.add( (left_side, rule[0], thisProb) )
-    foundSome = True
-    while foundSome:
-        #print "loop2"
-        foundSome = False
-        newOnes = set([])
-        for triple in unitChains:
-            #print "loop3"
-            #print pair
-            A, B, p = triple
-            for rule in g[B]:
-                #print B + " -> " + str(rule)
-                if (len(rule) == 1) and (rule[0] in nonterminals): # string comparison
-                    #print "got here"
-                    #print "~~~~~~~~~!!!!!" + str( type(theProbs))
-                    #probAtoB = theProbs[ ( A, tuple([B]) ) ] # commented out because this should be p, and may not be in theProbs yet?
-                    probBtoNext = theProbs[ ( B, tuple(rule) ) ]
-                    #newProb = probAtoB * probBtoNext
-                    newProb = p * probBtoNext
-                    new = (A, rule[0], newProb)
-                    #print new
-                    #print (new not in unitChains)
-                    if (new not in unitChains) and (new not in newOnes): # string comparison
-                        #print "got here22222"
-                        newOnes.add( new )
-                        foundSome = True
-        unitChains.update(newOnes) # same as `unitChains = unitChains.union(newOnes)` or `unitChains = (unitChains | newOnes)`, but faster
-    return unitChains
+## # Takes a grammar in the dictionary format and returns a list of tuples, each representing the start and end of a chain of unit productions - so if we have A -> B and B -> C, it should return [('A', 'B'), ('B', 'C'), ('A', 'C')]
+## def findUnitProductionChains(g, theProbs):
+##     #print "~~~~begin~~~~~!!!!!" + str( type(theProbs))
+##     unitChains = set([])
+##     for left_side in g:
+##         #print "loop1"
+##         rule_list = g[left_side]
+##         for rule in rule_list:
+##             if (len(rule) == 1) and (rule[0] in nonterminals): # string comparison
+##                 thisProb = theProbs[(left_side, tuple(rule))] # probability of this rule
+##                 unitChains.add( (left_side, rule[0], thisProb) )
+##     foundSome = True
+##     while foundSome:
+##         #print "loop2"
+##         foundSome = False
+##         newOnes = set([])
+##         for triple in unitChains:
+##             #print "loop3"
+##             #print pair
+##             A, B, p = triple
+##             for rule in g[B]:
+##                 #print B + " -> " + str(rule)
+##                 if (len(rule) == 1) and (rule[0] in nonterminals): # string comparison
+##                     #print "got here"
+##                     #print "~~~~~~~~~!!!!!" + str( type(theProbs))
+##                     #probAtoB = theProbs[ ( A, tuple([B]) ) ] # commented out because this should be p, and may not be in theProbs yet?
+##                     probBtoNext = theProbs[ ( B, tuple(rule) ) ]
+##                     #newProb = probAtoB * probBtoNext
+##                     newProb = p * probBtoNext
+##                     new = (A, rule[0], newProb)
+##                     #print new
+##                     #print (new not in unitChains)
+##                     if (new not in unitChains) and (new not in newOnes): # string comparison
+##                         #print "got here22222"
+##                         newOnes.add( new )
+##                         foundSome = True
+##         unitChains.update(newOnes) # same as `unitChains = unitChains.union(newOnes)` or `unitChains = (unitChains | newOnes)`, but faster
+##     return unitChains
 
 
-# Takes in a grammar (in the given dictionary format), and modifies it to get 
-#   rid of unit productions.
-# Does not return anything - it modifies the given grammar.    
+## # Takes in a grammar (in the given dictionary format), and modifies it to get 
+## #   rid of unit productions.
+## # Does not return anything - it modifies the given grammar.    
+## def removeUnitProductions(g, theProbs):
+##     #print "'Verb' in g? : " + str('Verb' in g)
+##     unitChains = findUnitProductionChains(g, theProbs)
+##     print "found all unit production chains!"
+##     print "len(unitChains):", len(unitChains)
+##     for triple in unitChains:
+##         print "loop forever?"
+##         A, B, p = triple
+##         print "len(g[B]):", len(g[B])
+##         print "A, B:", A, B
+##         for rule in g[B]:
+##             #print "loop forever 2?"
+##             #print "inside: len(g[B]):", len(g[B])
+##             g[A].append(rule)
+##             #theProbs[(dummy, tuple([rule[i]]))] = 1 # example probs usage
+##             probBtoRule = theProbs[ ( B, tuple(rule) ) ]
+##             theProbs[(A, tuple(rule))] = p * probBtoRule
+##         #print "A: " + str(A) + "; B: " + str(B) + "; g[A]: " + str(g[A])
+##         #g[A].remove([B])
+##         if [B] in g[A]:
+##             g[A].remove([B])
+##         #del g[B] # no longer need rule B at all
+
+def hasUnitProduction(g):
+    for lhs in g:
+        for indexOfRule in range(len(g[lhs])):
+            rule = g[lhs][indexOfRule]
+            if (len(rule) == 1) and rule[0] in nonterminals:
+                return (True, (lhs, indexOfRule))
+    return False
+
 def removeUnitProductions(g, theProbs):
-    #print "'Verb' in g? : " + str('Verb' in g)
-    unitChains = findUnitProductionChains(g, theProbs)
-    print "found all unit production chains!"
-    print "len(unitChains):", len(unitChains)
-    for triple in unitChains:
-        print "loop forever?"
-        A, B, p = triple
-        print "len(g[B]):", len(g[B])
-        print "A, B:", A, B
-        for rule in g[B]:
-            #print "loop forever 2?"
-            #print "inside: len(g[B]):", len(g[B])
-            g[A].append(rule)
-            #theProbs[(dummy, tuple([rule[i]]))] = 1 # example probs usage
-            probBtoRule = theProbs[ ( B, tuple(rule) ) ]
-            theProbs[(A, tuple(rule))] = p * probBtoRule # TODO: need to know probability of unit chain from A to B
-        #print "A: " + str(A) + "; B: " + str(B) + "; g[A]: " + str(g[A])
-        #g[A].remove([B])
-        if [B] in g[A]:
-            g[A].remove([B])
-        #del g[B] # no longer need rule B at all
+    while True: # because of next 3 lines, effectively `while there is a unit production`
+        boolean, tup = hasUnitProduction(g)
+        if not boolean:
+            break
 
+        lhs, indexOfRule = tup
+        A = lhs
+        rule = g[lhs]indexOfRule
+        B = rule[0]
+        len1BRules = [x[0] for x in g[B] if len(x) == 1]
+        terminalBRules = [x in terminals for x in len1BRules]
+        if any(terminalBRules): # if B goes to any terminal
+            probAtoB = theProbs[ ( A, tuple([B]) ) ]
+            for bRule in terminalBRules:
+                probBtoBRule = theProbs[ ( B, tuple([bRule]) ) ]
+                g[A] = bRule
+                theProbs[ ( A, tuple([bRule]) ) ] = probAtoB * probBtoBRule
+            g[A].remove([B])
+            del theProbs[ (A, tuple([B]) ) ]
 
 # Takes a single "long" rule: lhs is the nonterminal on the left-hand-side, rhs is the right-hand-side of the rule, and returns a suitable set of replacement rules in CNF, as tuples (i.e., expandRule("Z", ["A", "B", "C", "D"]) -> [("Z", ["A", "X1"]), ("X1", ["B", "X2"]), ("X2", ["C", "D"])]
 def expandRule(lhs, rhs, theProbs):
