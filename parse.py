@@ -166,44 +166,51 @@ def removeUnitProductions(g, theProbs):
 
 
 # Takes a single "long" rule: lhs is the nonterminal on the left-hand-side, rhs is the right-hand-side of the rule, and returns a suitable set of replacement rules in CNF, as tuples (i.e., expandRule("Z", ["A", "B", "C", "D"]) -> [("Z", ["A", "X1"]), ("X1", ["B", "X2"]), ("X2", ["C", "D"])]
-def expandRule(lhs, rhs):
+def expandRule(lhs, rhs, theProbs):
+    origProb = theProbs[ (lhs, tuple(rhs) ) ]
     newRules = []
     prev = lhs
     for i in range(0, len(rhs)-2): # we assume that rhs is at least length 3, or else this function shouldn't be called
         nextName = getNewName()
-        newRules.append( (prev, [rhs[i], nextName]) )
+        #newRules.append( (prev, [rhs[i], nextName]) )
+        if prev == lhs: # the rule w/ the original lhs
+            newRules.append( (prev, [rhs[i], nextName], origProb) )
+        else:
+            newRules.append( (prev, [rhs[i], nextName], 1) )
         prev = nextName
-        
-    newRules.append( (prev, [rhs[len(rhs)-2], rhs[len(rhs)-1]]) )
+
+    newRules.append( (prev, [rhs[len(rhs)-2], rhs[len(rhs)-1]], 1) )
     return newRules
 
 
 # Remove and replace "long" rules (more than 3 nondeterminals on the right hand side) with equivalent sequences of shorter ones. Takes a grammar and modifies it - does not return anything.
-def removeLongRules(g, p):  # make change probabilites in p appropriately
+def removeLongRules(g, theProbs):  # make change probabilites in p appropriately
     longRules = []
-    
+
     # Find all rules of length 3 or more, "write them down"
     for left_side in g:
         rule_list = g[left_side]
         for rule in rule_list:
             if len(rule) > 2:
                 longRules.append( (left_side, rule) )
-    
+
     # remove them from the grammar
     for pair in longRules:
         lhs, rhs = pair
         g[lhs].remove(rhs)
-    
+
     # expand each removed long rule into a sequence of rules w/ dummy nonterminals (X1, X2, etc.) and add them to the grammar
     for pair in longRules:
         lhs, rhs = pair
-        replacement = expandRule(lhs, rhs)
-        for newPair in replacement:
-            newLHS, newRHS = newPair
+        replacement = expandRule(lhs, rhs, theProbs)
+        for triple in replacement:
+            newLHS, newRHS, p = triple
+            theProbs[ (newLHS, tuple(newRHS)) ] = p
             if newLHS in g:
                 g[newLHS].append(newRHS)
             else:
                 g[newLHS] = [newRHS]
+        del theProbs[ (lhs, tuple(rhs) ) ] # the original rule
 
 
 # This function takes a grammar and returns an equivalent grammar in Chomsky Normal Form
