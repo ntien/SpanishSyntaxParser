@@ -148,9 +148,10 @@ def findUnitProductionChains(g, theProbs):
                 if (len(rule) == 1) and (rule[0] in nonterminals): # string comparison
                     #print "got here"
                     #print "~~~~~~~~~!!!!!" + str( type(theProbs))
-                    probAtoB = theProbs[ ( A, tuple([B]) ) ]
+                    #probAtoB = theProbs[ ( A, tuple([B]) ) ] # commented out because this should be p, and may not be in theProbs yet?
                     probBtoNext = theProbs[ ( B, tuple(rule) ) ]
-                    newProb = probAtoB * probBtoNext
+                    #newProb = probAtoB * probBtoNext
+                    newProb = p * probBtoNext
                     new = (A, rule[0], newProb)
                     #print new
                     #print (new not in unitChains)
@@ -168,9 +169,16 @@ def findUnitProductionChains(g, theProbs):
 def removeUnitProductions(g, theProbs):
     #print "'Verb' in g? : " + str('Verb' in g)
     unitChains = findUnitProductionChains(g, theProbs)
+    print "found all unit production chains!"
+    print "len(unitChains):", len(unitChains)
     for triple in unitChains:
+        print "loop forever?"
         A, B, p = triple
+        print "len(g[B]):", len(g[B])
+        print "A, B:", A, B
         for rule in g[B]:
+            #print "loop forever 2?"
+            #print "inside: len(g[B]):", len(g[B])
             g[A].append(rule)
             #theProbs[(dummy, tuple([rule[i]]))] = 1 # example probs usage
             probBtoRule = theProbs[ ( B, tuple(rule) ) ]
